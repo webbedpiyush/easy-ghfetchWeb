@@ -41,7 +41,7 @@ export default function Fetcher() {
   const [error, setError] = useState("");
   const { toast } = useToast();
 
-  const backendUrl = ""; //TODO will place the backend url here
+  const backendUrl = "http://localhost:8000/fetch"; //TODO will place the backend url here
 
   useEffect(
     function () {
