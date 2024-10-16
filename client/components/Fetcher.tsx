@@ -41,7 +41,7 @@ export default function Fetcher() {
   const [error, setError] = useState("");
   const { toast } = useToast();
 
-  const backendUrl = "http://localhost:8000/fetch"; //TODO will place the backend url here
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   useEffect(
     function () {
@@ -170,7 +170,7 @@ export default function Fetcher() {
   return (
     <div className="flex flex-col w-full items-center justify-center z-10 ">
       <Input
-      spellCheck={false}
+        spellCheck={false}
         type="url"
         placeholder="https://github.com/webbedpiyush/easy-ghcloneWeb/tree/main/client/app"
         value={url}

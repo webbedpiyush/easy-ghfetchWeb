@@ -21,7 +21,7 @@ export default function HowToUse() {
       <DialogContent className="flex flex-col w-[90vw] max-w-[500px] sm:w-full">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
-            How to Use easy-ghclone
+            How to Use easy-ghfetch
           </DialogTitle>
         </DialogHeader>
         <hr />
