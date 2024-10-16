@@ -91,4 +91,8 @@ app.post("/fetch", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("hi from backend");
+});
+
 module.exports = app;
