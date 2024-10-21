@@ -42,6 +42,7 @@ export default function Fetcher() {
   const { toast } = useToast();
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  // const backendUrl = "http://localhost:8000/fetch";
 
   useEffect(
     function () {
@@ -72,10 +73,21 @@ export default function Fetcher() {
       setUrl("");
       return;
     }
+  
+    const { user, repo } = parseGitHubUrl(url) || {};
+    const repoUrl = `https://api.github.com/repos/${user}/${repo}`;
+  
     setIsLoading(true);
     setError("");
-
+  
     try {
+      // Check if the repository is private or public
+      const repoCheck = await fetch(repoUrl);
+      
+      if (repoCheck.status === 404) {
+        throw new Error("Private repository or invalid URL");
+      }
+  
       const res = await fetch(`${backendUrl}`, {
         method: "POST",
         headers: {
@@ -83,47 +95,55 @@ export default function Fetcher() {
         },
         body: JSON.stringify({ url }),
       });
+  
+      if (!res.ok) {
+        throw new Error("Something went wrong");
+      }
+  
       const response = await res.blob();
-
+      console.log("Response received:", response);
+  
+      const isFile = url.includes("/blob/");
+      const fileName = url.split("/").pop();
+      const downloadFileName = isFile ? fileName : `${fileName}.zip`;
+  
       const downloadUrl = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.setAttribute("download", `${url.split("/").pop()}.zip`);
+      link.setAttribute("download", downloadFileName!);
       document.body.appendChild(link);
       link.click();
+      
       if (link.parentNode) {
         link.parentNode.removeChild(link);
       }
+  
       if (response) {
         setIsLoading(false);
         toast({
           variant: "default",
           title: "Success!",
-          description: `${url.split("/").pop()}.zip downloaded successfully`,
+          description: `${downloadFileName} downloaded successfully`,
           className: cn("bg-green-400"),
         });
       }
     } catch (err: any) {
       console.log("Error:", err);
-      if (err.response && err.response.status === 429) {
-        setError("Too many requests. Please calm the fuck down.");
-        toast({
-          variant: "destructive",
-          title: "Too many requests",
-          description: "Please calm the fuck down",
-        });
-      } else {
-        ("Error downloading file. Please calm the fuck down.");
-        toast({
-          variant: "destructive",
-          title: "Error downloading file",
-          description: "Please calm the fuck down",
-        });
-      }
+      const errorMessage = err.message === "Private repository or invalid URL"
+        ? "This is a private repository. Access denied."
+        : "There was an error fetching the file/folder.";
+  
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
   }
+  
+  
 
   async function handleCurl() {
     if (!checkUrl(url)) {

@@ -65,29 +65,53 @@ app.post("/fetch", async (req, res) => {
       throw new Error("Invalid GitHub URL");
     }
 
-    const response = await axios.get(
-      `https://api.github.com/repos/${user}/${repo}/git/trees/${branch}?recursive=1`
-    );
-    const data = response.data.tree;
+    // Determine if the path is a file or folder
+    const isFile = path.includes(".");
 
-    const zip = new JSZip();
-    await fetchContents(user, repo, branch, path, data, zip);
+    if (isFile) {
+      // Fetch the raw file content if it's a file
+      const fileResponse = await axios.get(
+        `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${path}`,
+        { responseType: "arraybuffer" }
+      );
 
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${folderName}.zip"`
-    );
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${folderName}"`
+      );
 
-    const zipStr = zip.generateNodeStream({
-      type: "nodebuffer",
-      streamFiles: true,
-    });
+      return res.send(fileResponse.data);
+    } else {
+      // Fetch the folder contents if it's a folder
+      const response = await axios.get(
+        `https://api.github.com/repos/${user}/${repo}/git/trees/${branch}?recursive=1`
+      );
+      const data = response.data.tree;
 
-    zipStr.pipe(res);
+      if (data.status === 404) {
+        return res.status(404).send("Error fetching folder contents");
+      }
+
+      const zip = new JSZip();
+      await fetchContents(user, repo, branch, path, data, zip);
+
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${folderName}.zip"`
+      );
+
+      const zipStr = zip.generateNodeStream({
+        type: "nodebuffer",
+        streamFiles: true,
+      });
+
+      zipStr.pipe(res);
+    }
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).send("Error fetching folder contents , mf check your url.");
+    res.status(500).send("Error fetching file/folder contents.");
   }
 });
 
